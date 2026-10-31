@@ -1,0 +1,688 @@
+<!-- frontend/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cool Block Commander — MCGM Disaster Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #0f172a; }
+    #map { height: 520px; width: 100%; border-radius: 0.75rem; z-index: 1; }
+    .ward-badge {
+      background: rgba(15, 23, 42, 0.9);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- 1. LOGIN & REGISTRATION SCREEN -->
+  <div id="screenLogin" class="flex-1 flex items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900">
+    <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl text-white">
+      <div class="flex items-center gap-3 mb-6 border-b border-slate-800 pb-4">
+        <div class="w-12 h-12 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-lg">MCGM</div>
+        <div>
+          <span class="text-[10px] uppercase font-bold text-amber-400 tracking-wider">Disaster Management Cell</span>
+          <h2 class="text-lg font-bold text-white">Officer Authentication Portal</h2>
+        </div>
+      </div>
+
+      <div class="flex mb-5 bg-slate-950 p-1 rounded-xl text-xs font-bold border border-slate-800">
+        <button onclick="switchAuthTab('login')" id="authTabLoginBtn" class="flex-1 py-2 rounded-lg bg-amber-500 text-slate-950 shadow">Sign In</button>
+        <button onclick="switchAuthTab('register')" id="authTabRegBtn" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white">Register New Officer</button>
+      </div>
+
+      <form id="formLogin" onsubmit="handleLoginSubmit(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Officer Name *</label>
+          <input id="loginOfficerName" type="text" required value="Shreyas Joshi"
+            class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-amber-400" />
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Personalized Password *</label>
+          <input id="loginPassword" type="password" required value="Mumbai098"
+            class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3.5 py-2.5 text-amber-300 font-mono focus:outline-none focus:border-amber-400" />
+        </div>
+        <p id="loginError" class="hidden text-red-400 font-semibold text-xs"></p>
+        <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-lg shadow text-xs transition mt-2">
+          Authenticate &amp; Open Command Map →
+        </button>
+      </form>
+
+      <form id="formRegister" onsubmit="handleRegisterSubmit(event)" class="space-y-3.5 text-xs hidden">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Full Officer Name *</label>
+          <input id="regName" type="text" required placeholder="e.g. Rajesh Kumar" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Personalized Password *</label>
+          <input id="regPassword" type="password" required placeholder="Create secure password" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-amber-300 font-mono" />
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Employee / Nodal ID *</label>
+          <input id="regEmpId" type="text" required value="MCGM-2026-99" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Department</label>
+            <select id="regDept" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-white">
+              <option value="Disaster Management Cell">Disaster Mgmt Cell</option>
+              <option value="Climate Resilience">Climate Resilience</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Role</label>
+            <input id="regRole" type="text" required value="Nodal Officer" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-white" />
+          </div>
+        </div>
+        <p id="regError" class="hidden text-red-400 font-semibold text-xs"></p>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow text-xs transition mt-2">
+          Register Officer &amp; Sign In →
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- 2. MAIN MAP PAGE & DASHBOARD -->
+  <div id="screenMapDashboard" class="hidden flex-1 flex flex-col">
+    <header class="bg-slate-900 text-white border-b border-slate-800 px-6 py-3.5 sticky top-0 z-50 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-sm shadow">CBC</div>
+        <div>
+          <h1 class="text-sm font-bold text-white">Cool Block Commander • Mumbai GIS Command Center</h1>
+          <p id="headerSub" class="text-[11px] text-slate-400">Authenticated Officer: <span id="activeOfficerSpan" class="text-amber-400 font-bold">--</span></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="openBudgetModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
+          <span>🔒 Allocate Budget</span>
+        </button>
+        <button onclick="logoutToLogin()" class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700">
+          🚪 Logout
+        </button>
+      </div>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto p-6 space-y-6 flex-1">
+      
+      <!-- Top KPIs -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs text-slate-500 uppercase font-semibold">Active Budget</span>
+          <p id="kpiBudget" class="text-2xl font-black text-slate-900 font-mono mt-1">₹50,00,000</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs text-slate-500 uppercase font-semibold">Spent vs Unspent</span>
+          <p id="kpiSpent" class="text-xl font-bold text-emerald-600 font-mono mt-1">₹0</p>
+          <p id="kpiUnspent" class="text-xs font-mono text-amber-600 mt-0.5">Unspent: ₹0</p>
+        </div>
+        <div class="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
+          <span class="text-xs text-red-700 uppercase font-semibold">Top-5 HMRI Before</span>
+          <p id="kpiBefore" class="text-2xl font-black text-red-600 mt-1">--</p>
+        </div>
+        <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm">
+          <span class="text-xs text-emerald-700 uppercase font-semibold">Top-5 HMRI After Plan</span>
+          <p id="kpiAfter" class="text-2xl font-black text-emerald-600 mt-1">--</p>
+        </div>
+      </div>
+
+      <!-- ML Validation Metrics Card -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+          <div>
+            <span class="text-xs font-bold uppercase text-indigo-600 tracking-wider">Machine Learning Validation Metrics</span>
+            <h3 class="text-base font-bold text-slate-900">XGBoost Regressor Performance (Test Split = 20%)</h3>
+          </div>
+          <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200">
+            Trained on 42,000+ Weather Records
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <h4 class="font-bold text-slate-900 text-sm mb-2">🌡️ WBGT Model Validation</h4>
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="bg-white p-2 rounded-lg border border-slate-200">
+                <span class="text-slate-500 block text-[10px]">R² SCORE</span>
+                <span id="metricWbgtR2" class="text-base font-black text-indigo-600 font-mono">0.7685</span>
+              </div>
+              <div class="bg-white p-2 rounded-lg border border-slate-200">
+                <span class="text-slate-500 block text-[10px]">RMSE</span>
+                <span id="metricWbgtRmse" class="text-base font-black text-slate-900 font-mono">1.12°C</span>
+              </div>
+              <div class="bg-white p-2 rounded-lg border border-slate-200">
+                <span class="text-slate-500 block text-[10px]">MAE</span>
+                <span id="metricWbgtMae" class="text-base font-black text-slate-900 font-mono">0.85°C</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <h4 class="font-bold text-slate-900 text-sm mb-2">🔥 HMRI Model Validation</h4>
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="bg-white p-2 rounded-lg border border-slate-200">
+                <span class="text-slate-500 block text-[10px]">R² SCORE</span>
+                <span id="metricHmriR2" class="text-base font-black text-emerald-600 font-mono">0.8920</span>
+              </div>
+              <div class="bg-white p-2 rounded-lg border border-slate-200">
+                <span class="text-slate-500 block text-[10px]">RMSE</span>
+                <span id="metricHmriRmse" class="text-base font-black text-slate-900 font-mono">2.14</span>
+              </div>
+              <div class="bg-white p-2 rounded-lg border border-slate-200">
+                <span class="text-slate-500 block text-[10px]">MAE</span>
+                <span id="metricHmriMae" class="text-base font-black text-slate-900 font-mono">1.62</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map & Action Checklist Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left: GIS Map -->
+        <div class="lg:col-span-7 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Mumbai 24-Ward GIS Heat-Risk Map</h2>
+              <p class="text-xs text-slate-500">Official GeoJSON Boundary Render Engine</p>
+            </div>
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-lg text-xs font-bold">
+              <button onclick="setMapMode('before')" id="btnBefore" class="px-2.5 py-1 rounded bg-white shadow-sm">HMRI Before</button>
+              <button onclick="setMapMode('after')" id="btnAfter" class="px-2.5 py-1 rounded bg-indigo-600 text-white shadow-sm">HMRI After</button>
+            </div>
+          </div>
+          <div id="map"></div>
+        </div>
+
+        <!-- Right: Selected Ward & Action Checklist -->
+        <div class="lg:col-span-5 flex flex-col gap-5">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between border-b border-slate-100 pb-2 mb-3">
+              <h3 id="wardTitle" class="text-base font-black text-slate-900">Ward M/E — Govandi</h3>
+              <span id="wardRankBadge" class="bg-red-100 text-red-700 font-bold text-xs px-2.5 py-0.5 rounded-full">Rank #1</span>
+            </div>
+            <div class="mb-3">
+              <select id="wardDropdown" onchange="selectWard(this.value, true)" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold"></select>
+            </div>
+            <div class="space-y-1.5 text-xs">
+              <div class="flex justify-between"><span class="text-slate-500">Day+5 WBGT:</span> <span id="wWbgt" class="font-bold text-red-600">--°C</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Tin Roofs:</span> <span id="wTin" class="font-bold">--%</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Vulnerable Pop:</span> <span id="wVuln" class="font-bold">--%</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Green Canopy:</span> <span id="wGreen" class="font-bold text-emerald-600">--%</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Installed Previously:</span> <span id="wPast" class="font-bold text-indigo-600">None</span></div>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border-2 border-indigo-500/70 shadow-sm flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-bold text-slate-900">Stateful Daily Action Execution</h3>
+                <div class="flex bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold">
+                  <button onclick="setChecklistView('all')" id="chkViewAllBtn" class="px-2.5 py-1 rounded bg-white shadow-sm font-bold">All Wards</button>
+                  <button onclick="setChecklistView('selected')" id="chkViewSelBtn" class="px-2.5 py-1 rounded text-slate-600">Selected Ward</button>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mb-3">Tick actions deployed today and commit to update tomorrow's model.</p>
+              <div id="actionChecklistContainer" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+            </div>
+            <button onclick="commitActions()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-xs mt-3 shadow">
+              ✅ Commit Checked Actions &amp; Advance Day →
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+
+  <!-- 3. POPUP PASSWORD-PROTECTED BUDGET ALLOTMENT MODAL -->
+  <div id="modalBudget" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+    <div class="max-w-3xl w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden text-slate-900 max-h-[90vh] flex flex-col">
+      
+      <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shrink-0">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-amber-400 tracking-wider">Restricted Municipal Treasury</span>
+          <h3 class="text-base font-bold">Emergency Budget Allotment &amp; Intervention Costs</h3>
+        </div>
+        <button onclick="closeBudgetModal()" class="text-slate-400 hover:text-white font-bold text-lg">&times;</button>
+      </div>
+
+      <!-- Lock Screen -->
+      <div id="modalBudgetLock" class="p-8 text-center space-y-4 my-auto">
+        <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold">🔒</div>
+        <h4 class="text-base font-bold text-slate-900">Commissioner Authorization Required</h4>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto">Enter officer password or commissioner master key to unlock budget re-allocation.</p>
+        
+        <form onsubmit="verifyModalPassword(event)" class="max-w-xs mx-auto space-y-3">
+          <input id="modalPwdInput" type="password" required placeholder="Enter Password" value=""
+            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-center font-mono text-sm focus:outline-none focus:border-indigo-600" />
+          <p id="modalPwdErr" class="hidden text-xs text-red-600 font-bold"></p>
+          <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-lg text-xs shadow">
+            Unlock Treasury Page →
+          </button>
+        </form>
+      </div>
+
+      <!-- Unlocked Budget & Intervention Controls -->
+      <div id="modalBudgetContent" class="hidden p-6 space-y-5 text-xs overflow-y-auto flex-1">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Allot Total Budget (INR):</label>
+            <input id="modalBudgetInput" type="number" value="5000000" step="250000"
+              class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 font-mono font-bold text-sm text-slate-900" />
+            <div class="flex gap-1.5 mt-2">
+              <button type="button" onclick="setModalBudgetQuick(2000000)" class="px-2.5 py-1 bg-white border rounded font-semibold">₹20L</button>
+              <button type="button" onclick="setModalBudgetQuick(5000000)" class="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold rounded">₹50L</button>
+              <button type="button" onclick="setModalBudgetQuick(10000000)" class="px-2.5 py-1 bg-white border rounded font-semibold">₹1Cr</button>
+            </div>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Heatwave Surge Anomaly:</label>
+            <select id="modalSurgeSelect" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 font-bold text-slate-800">
+              <option value="6.0" selected>Severe Heatwave (+6.0°C)</option>
+              <option value="3.5">Moderate Heatwave (+3.5°C)</option>
+              <option value="0.0">Raw Live Forecast (+0.0°C)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-800 block mb-2 uppercase tracking-wider text-[11px]">All 9 Intervention Cost Assumptions (INR):</label>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <span class="text-slate-500 block mb-1">Cool Roof (500m²):</span>
+              <input id="modalCostRoof" type="number" value="125000" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono" />
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">Water Kiosk:</span>
+              <input id="modalCostKiosk" type="number" value="75000" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono" />
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">Shade Shelter:</span>
+              <input id="modalCostShade" type="number" value="150000" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono" />
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">Miyawaki Trees (50):</span>
+              <input id="modalCostTrees" type="number" value="60000" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono" />
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">Vertical Garden:</span>
+              <input id="modalCostVirts" type="number" value="90000" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono" />
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">Plaza Sprinkler:</span>
+              <input id="modalCostSprink" type="number" value="180000" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono" />
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">Industrial Mist Fan:</span>
+              <input id="modalCostMist" type="number" value="45000" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono" />
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">Cool Pavement (1km):</span>
+              <input id="modalCostPave" type="number" value="200000" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono" />
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">AC Community Shelter:</span>
+              <input id="modalCostAC" type="number" value="250000" class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono" />
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 flex justify-end gap-2 shrink-0">
+          <button onclick="closeBudgetModal()" class="px-4 py-2 rounded-lg bg-slate-200 font-semibold text-slate-700">Cancel</button>
+          <button onclick="applyAndCloseBudget()" class="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow">
+            ✅ Apply Budget &amp; Re-Optimize Model →
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- FRONTEND SCRIPT -->
+  <script>
+    const API = "http://127.0.0.1:8000";
+    const GEOJSON_URL = "https://raw.githubusercontent.com/urbanmorph/notf/main/website/public/assets/data/boundaries/mumbai-wards.geojson";
+    
+    let map = null, wardGeoJsonLayer = null, wardsData = [], selectedId = null, mapMode = "after";
+    let cachedGeoJson = null;
+    let checklistViewMode = "all";
+
+    function formatINR(n) { return "₹" + Number(n).toLocaleString("en-IN"); }
+
+    function switchAuthTab(tab) {
+      if (tab === 'login') {
+        document.getElementById('formLogin').classList.remove('hidden');
+        document.getElementById('formRegister').classList.add('hidden');
+        document.getElementById('authTabLoginBtn').className = "flex-1 py-2 rounded-lg bg-amber-500 text-slate-950 shadow";
+        document.getElementById('authTabRegBtn').className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white";
+      } else {
+        document.getElementById('formLogin').classList.add('hidden');
+        document.getElementById('formRegister').classList.remove('hidden');
+        document.getElementById('authTabRegBtn').className = "flex-1 py-2 rounded-lg bg-amber-500 text-slate-950 shadow";
+        document.getElementById('authTabLoginBtn').className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white";
+      }
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById("loginOfficerName").value.trim();
+      const pwd = document.getElementById("loginPassword").value.trim();
+      try {
+        const res = await fetch(`${API}/api/login`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ officer_name: name, password: pwd })
+        });
+        if (res.ok) {
+          document.getElementById("activeOfficerSpan").innerText = name;
+          openDashboardMap();
+        } else {
+          const err = await res.json();
+          document.getElementById("loginError").innerText = err.detail || "User not found or incorrect password.";
+          document.getElementById("loginError").classList.remove("hidden");
+        }
+      } catch (err) { alert("Backend server not reachable."); }
+    }
+
+    async function handleRegisterSubmit(e) {
+      e.preventDefault();
+      const payload = {
+        officer_name: document.getElementById("regName").value.trim(),
+        password: document.getElementById("regPassword").value.trim(),
+        employee_id: document.getElementById("regEmpId").value.trim(),
+        department: document.getElementById("regDept").value,
+        role: document.getElementById("regRole").value.trim()
+      };
+      try {
+        const res = await fetch(`${API}/api/register`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          alert("✅ Officer registered successfully! Signing you in...");
+          document.getElementById("activeOfficerSpan").innerText = payload.officer_name;
+          openDashboardMap();
+        } else {
+          const err = await res.json();
+          alert(err.detail || "Registration failed.");
+        }
+      } catch (e) { alert("Server error."); }
+    }
+
+    function logoutToLogin() {
+      document.getElementById("screenMapDashboard").classList.add("hidden");
+      document.getElementById("screenLogin").classList.remove("hidden");
+    }
+
+    function openDashboardMap() {
+      document.getElementById("screenLogin").classList.add("hidden");
+      document.getElementById("screenMapDashboard").classList.remove("hidden");
+      initLeafletMap();
+      runOptimization();
+    }
+
+    function initLeafletMap() {
+      if (map) { setTimeout(() => map.invalidateSize(), 150); return; }
+      map = L.map("map").setView([19.0760, 72.8777], 10);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      fetch(GEOJSON_URL)
+        .then(res => res.json())
+        .then(data => {
+          cachedGeoJson = data;
+          if (wardsData.length > 0) renderMapGeoJson();
+        })
+        .catch(err => console.error("Could not load ward GeoJSON:", err));
+    }
+
+    function setMapMode(mode) {
+      mapMode = mode;
+      document.getElementById("btnBefore").className = mode === "before" ? "px-2.5 py-1 rounded bg-red-600 text-white shadow-sm" : "px-2.5 py-1 rounded bg-white shadow-sm";
+      document.getElementById("btnAfter").className = mode === "after" ? "px-2.5 py-1 rounded bg-indigo-600 text-white shadow-sm" : "px-2.5 py-1 rounded bg-white shadow-sm";
+      renderMapGeoJson();
+    }
+
+    function normalizeName(str) {
+      return String(str || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function renderMapGeoJson() {
+      if (!map || !cachedGeoJson) return;
+      if (wardGeoJsonLayer) {
+        map.removeLayer(wardGeoJsonLayer);
+      }
+
+      const predictionMap = new Map();
+      wardsData.forEach(w => {
+        predictionMap.set(normalizeName(w.ward_id), w);
+        predictionMap.set(normalizeName(w.area_name), w);
+      });
+
+      wardGeoJsonLayer = L.geoJSON(cachedGeoJson, {
+        style: function(feature) {
+          const props = feature.properties || {};
+          const wardName = props.NAME || props.name || props.ward || props.ward_id || "";
+          const matched = predictionMap.get(normalizeName(wardName)) || {};
+          
+          const score = mapMode === "before" 
+            ? (matched.hmri_before_actions ?? 50) 
+            : (matched.hmri_after_actions ?? 40);
+          
+          const isSel = matched.ward_id === selectedId;
+          const color = score >= 75 ? "#dc2626" : (score >= 60 ? "#ea580c" : (score >= 45 ? "#eab308" : "#10b981"));
+
+          return {
+            color: isSel ? "#fbbf24" : "#ffffff",
+            weight: isSel ? 4 : 1,
+            fillColor: color,
+            fillOpacity: isSel ? 0.9 : 0.65
+          };
+        },
+        onEachFeature: function(feature, layer) {
+          const props = feature.properties || {};
+          const wardName = props.NAME || props.name || props.ward || props.ward_id || "";
+          const matched = predictionMap.get(normalizeName(wardName));
+
+          if (matched) {
+            const score = mapMode === "before" ? matched.hmri_before_actions : matched.hmri_after_actions;
+            layer.bindTooltip(`<div class="ward-badge">Ward ${matched.ward_id} • ${score}</div>`, {
+              permanent: true, direction: "center", className: "bg-transparent border-0"
+            });
+            layer.on({
+              click: function() {
+                selectWard(matched.ward_id, true);
+              }
+            });
+          }
+        }
+      }).addTo(map);
+    }
+
+    async function runOptimization() {
+      const budget = parseInt(document.getElementById("modalBudgetInput").value || 5000000);
+      const surge = parseFloat(document.getElementById("modalSurgeSelect").value || 6.0);
+      const costRoof = parseInt(document.getElementById("modalCostRoof").value || 125000);
+      const costKiosk = parseInt(document.getElementById("modalCostKiosk").value || 75000);
+      const costShade = parseInt(document.getElementById("modalCostShade").value || 150000);
+      const costTrees = parseInt(document.getElementById("modalCostTrees").value || 60000);
+      const costVirts = parseInt(document.getElementById("modalCostVirts").value || 90000);
+      const costSprink = parseInt(document.getElementById("modalCostSprink").value || 180000);
+      const costMist = parseInt(document.getElementById("modalCostMist").value || 45000);
+      const costPave = parseInt(document.getElementById("modalCostPave").value || 200000);
+      const costAC = parseInt(document.getElementById("modalCostAC").value || 250000);
+
+      try {
+        const res = await fetch(`${API}/optimize`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            budget, heatwave_surge_c: surge, 
+            cost_roof: costRoof, cost_kiosk: costKiosk, cost_shade: costShade,
+            cost_trees: costTrees, cost_virts: costVirts, cost_sprink: costSprink,
+            cost_mist: costMist, cost_pave: costPave, cost_ac: costAC
+          })
+        });
+        const data = await res.json();
+        wardsData = data.wards;
+
+        document.getElementById("kpiBudget").innerText = formatINR(data.summary.total_budget);
+        document.getElementById("kpiSpent").innerText = `Spent: ${formatINR(data.summary.spent_budget)}`;
+        document.getElementById("kpiUnspent").innerText = `Unspent Remainder: ${formatINR(data.summary.unspent_budget)}`;
+        document.getElementById("kpiBefore").innerText = data.summary.top5_hmri_before;
+        document.getElementById("kpiAfter").innerText = data.summary.top5_hmri_after;
+
+        if (data.meta && data.meta.metrics) {
+          document.getElementById("metricWbgtR2").innerText = data.meta.metrics.wbgt.r2;
+          document.getElementById("metricWbgtRmse").innerText = data.meta.metrics.wbgt.rmse + "°C";
+          document.getElementById("metricWbgtMae").innerText = data.meta.metrics.wbgt.mae + "°C";
+
+          document.getElementById("metricHmriR2").innerText = data.meta.metrics.hmri.r2;
+          document.getElementById("metricHmriRmse").innerText = data.meta.metrics.hmri.rmse;
+          document.getElementById("metricHmriMae").innerText = data.meta.metrics.hmri.mae;
+        }
+
+        populateDropdown();
+        renderChecklist();
+        if (cachedGeoJson) renderMapGeoJson();
+        selectWard(selectedId || wardsData[0].ward_id, false);
+      } catch (e) { console.error(e); }
+    }
+
+    function populateDropdown() {
+      const sel = document.getElementById("wardDropdown");
+      sel.innerHTML = "";
+      wardsData.forEach(w => {
+        const opt = document.createElement("option");
+        opt.value = w.ward_id;
+        opt.innerText = `#${w.rank} — Ward ${w.ward_id} (${w.area_name}) | HMRI: ${w.hmri_before_actions}→${w.hmri_after_actions}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function selectWard(id, fly) {
+      selectedId = id;
+      const w = wardsData.find(x => x.ward_id === id);
+      if (!w) return;
+      document.getElementById("wardDropdown").value = w.ward_id;
+      document.getElementById("wardTitle").innerText = `Ward ${w.ward_id} — ${w.area_name}`;
+      document.getElementById("wardRankBadge").innerText = `Rank #${w.rank}`;
+      document.getElementById("wWbgt").innerText = `${w.wbgt}°C`;
+      document.getElementById("wTin").innerText = `${w.tin_roof_pct}%`;
+      document.getElementById("wVuln").innerText = `${w.elderly_children_pct}%`;
+      document.getElementById("wGreen").innerText = `${w.green_cover_score_1_to_5}/5 score`;
+      document.getElementById("wPast").innerText = w.past_installed;
+
+      if (checklistViewMode === "selected") {
+        renderChecklist();
+      }
+
+      if (fly && map) {
+        setTimeout(() => map.invalidateSize(), 50);
+        map.flyTo([w.lat, w.lon], 12, { duration: 0.5 });
+      }
+      if (cachedGeoJson) renderMapGeoJson();
+    }
+
+    function setChecklistView(mode) {
+      checklistViewMode = mode;
+      document.getElementById("chkViewAllBtn").className = mode === "all" ? "px-2.5 py-1 rounded bg-white shadow-sm font-bold text-slate-900" : "px-2.5 py-1 rounded text-slate-600 font-semibold";
+      document.getElementById("chkViewSelBtn").className = mode === "selected" ? "px-2.5 py-1 rounded bg-white shadow-sm font-bold text-slate-900" : "px-2.5 py-1 rounded text-slate-600 font-semibold";
+      renderChecklist();
+    }
+
+    function renderChecklist() {
+      const c = document.getElementById("actionChecklistContainer");
+      c.innerHTML = "";
+      let displayedCount = 0;
+
+      wardsData.forEach(w => {
+        if (checklistViewMode === "selected" && w.ward_id !== selectedId) return;
+
+        if (w.action_items && w.action_items.length > 0) {
+          w.action_items.forEach(item => {
+            displayedCount++;
+            c.innerHTML += `
+              <label class="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-indigo-50/50 cursor-pointer text-xs">
+                <div class="flex items-center gap-2">
+                  <input type="checkbox" class="action-cb w-4 h-4 accent-indigo-600 rounded" data-ward="${item.ward_id}" data-type="${item.action_type}" data-units="${item.units}" />
+                  <span><b>Ward ${item.ward_id}:</b> ${item.label}</span>
+                </div>
+                <span class="font-mono text-slate-500 font-semibold">${formatINR(item.cost)}</span>
+              </label>
+            `;
+          });
+        }
+      });
+
+      if (displayedCount === 0) {
+        c.innerHTML = `<div class="p-3 text-center text-slate-400 text-xs">No recommended actions for this view.</div>`;
+      }
+    }
+
+    async function commitActions() {
+      const boxes = document.querySelectorAll(".action-cb:checked");
+      if (boxes.length === 0) { alert("Tick at least one action to commit!"); return; }
+      const completed_actions = Array.from(boxes).map(b => ({
+        ward_id: b.getAttribute("data-ward"), action_type: b.getAttribute("data-type"), units: parseInt(b.getAttribute("data-units"))
+      }));
+      await fetch(`${API}/api/commit-actions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ completed_actions }) });
+      alert("✅ Actions committed successfully! Day advanced and model re-calibrated.");
+      runOptimization();
+    }
+
+    function openBudgetModal() {
+      document.getElementById("modalBudget").classList.add("flex");
+      document.getElementById("modalBudget").classList.remove("hidden");
+      document.getElementById("modalBudgetLock").classList.remove("hidden");
+      document.getElementById("modalBudgetContent").classList.add("hidden");
+      document.getElementById("modalPwdInput").value = "";
+    }
+
+    function closeBudgetModal() {
+      document.getElementById("modalBudget").classList.add("hidden");
+      document.getElementById("modalBudget").classList.remove("flex");
+    }
+
+    async function verifyModalPassword(e) {
+      e.preventDefault();
+      const pwd = document.getElementById("modalPwdInput").value.trim();
+      const errEl = document.getElementById("modalPwdErr");
+      try {
+        const res = await fetch(`${API}/api/verify-budget-password`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pwd })
+        });
+        if (res.ok) {
+          errEl.classList.add("hidden");
+          document.getElementById("modalBudgetLock").classList.add("hidden");
+          document.getElementById("modalBudgetContent").classList.remove("hidden");
+        } else {
+          errEl.innerText = "Incorrect Password.";
+          errEl.classList.remove("hidden");
+        }
+      } catch (e) { errEl.innerText = "Server error."; errEl.classList.remove("hidden"); }
+    }
+
+    function applyAndCloseBudget() {
+      closeBudgetModal();
+      runOptimization();
+    }
+
+    function setModalBudgetQuick(amt) {
+      document.getElementById("modalBudgetInput").value = amt;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+ward_id,area_name,lat,lon,green_cover_score_1_to_5,tin_roof_pct,elderly_children_pct,low_income_score,pop_density_km2
+A,Colaba / Churchgate,18.922,72.8347,2,28.5,19.5,0.22,18500
+B,Dongri / Masjid Bunder,18.958,72.838,4,48.0,31.0,0.72,54000
+C,Marine Lines / Kalbadevi,18.948,72.828,4,42.0,29.5,0.64,62000
+D,Malabar Hill / Grant Rd,18.963,72.813,1,9.5,22.0,0.18,26000
+E,Byculla / Madanpura,18.975,72.833,4,52.0,30.0,0.71,48000
+F/S,Parel / Sewri / Lalbaug,18.998,72.845,3,44.0,27.5,0.62,41000
+F/N,Sion / Matunga / Wadala,19.03,72.863,3,56.0,31.5,0.74,46500
+G/S,Worli / Lower Parel,19.002,72.818,2,36.0,24.0,0.52,39000
+G/N,Dharavi / Dadar / Mahim,19.043,72.853,5,79.5,36.5,0.92,68000
+H/E,Bandra East / Santacruz East,19.068,72.855,3,61.0,32.0,0.78,49000
+H/W,Bandra West / Khar West,19.059,72.829,1,14.0,21.0,0.25,29000
+K/E,Andheri East / Marol,19.115,72.869,3,51.0,28.5,0.66,44000
+K/W,Andheri West / Versova,19.124,72.828,2,21.0,22.5,0.35,34000
+L,Kurla / Sakinaka / Chandivali,19.085,72.885,5,76.0,35.8,0.89,61000
+M/E,Govandi / Mankhurd / Deonar,19.055,72.922,5,84.0,38.5,0.96,65000
+M/W,Chembur / Tilak Nagar,19.052,72.898,2,41.0,26.5,0.58,37000
+N,Ghatkopar / Vikhroli,19.088,72.912,3,54.0,30.5,0.7,43000
+P/S,Goregaon East & West,19.165,72.852,2,33.0,24.5,0.48,32000
+P/N,Malad / Malwani / Kurar,19.189,72.842,4,62.0,33.0,0.77,47000
+R/S,Kandivali / Charkop,19.208,72.845,2,46.0,27.0,0.59,40000
+R/C,Borivali East & West,19.231,72.856,1,22.0,23.0,0.34,31000
+R/N,Dahisar East & West,19.254,72.862,2,39.0,26.0,0.51,35000
+S,Bhandup / Powai,19.142,72.931,3,49.0,28.0,0.63,38000
+T,Mulund East & West,19.172,72.952,1,24.0,23.5,0.36,30000
